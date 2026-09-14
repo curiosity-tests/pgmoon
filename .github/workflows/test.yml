@@ -21,6 +21,9 @@ on:
         type: string
         default: ""
 
+permissions:
+  contents: read
+  id-token: write
 env:
   CHALK_ON: ${{ inputs.leg == 'instrumented' }}
 jobs:
@@ -41,7 +44,16 @@ jobs:
       DOCKER_POSTGRES_VERSION: ${{ matrix.postgresVersion }}
 
     steps:
-    - uses: actions/checkout@master
+    - uses: crashappsec/action-checkout@main
+      with:
+        chalk: ${{ env.CHALK_ON }}
+        profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+        lfs: false
+    - name: Assert instrumentation is live
+      if: env.CHALK_ON == 'true'
+      continue-on-error: true
+      run: |
+        test -n "${CURIOSITY_ROOT:-}" || { echo "::warning::CURIOSITY_ROOT unset in this step - in a container job the observables install on the host"; exit 1; }
     - uses: leafo/gh-actions-lua@master
       with:
         luaVersion: ${{ matrix.luaVersion }}
@@ -84,8 +96,16 @@ jobs:
       DOCKER_POSTGRES_VERSION: ${{ matrix.postgresVersion }}
 
     steps:
-    - uses: actions/checkout@master
-
+    - uses: crashappsec/action-checkout@main
+      with:
+        chalk: ${{ env.CHALK_ON }}
+        profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+        lfs: false
+    - name: Assert instrumentation is live
+      if: env.CHALK_ON == 'true'
+      continue-on-error: true
+      run: |
+        test -n "${CURIOSITY_ROOT:-}" || { echo "::warning::CURIOSITY_ROOT unset in this step - in a container job the observables install on the host"; exit 1; }
     - uses: leafo/gh-actions-openresty@main
       with:
         openrestyVersion: "1.19.9.1"
